@@ -12,6 +12,10 @@ struct Vertex {
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec3 diffuse_color;
+    // Vertex(glm::vec3 pos, glm::vec3 normal, glm::vec3 color):
+    //     position{pos},
+    //     normal{normal},
+    //     diffuse_color{color} {}
 };
 
 class Mesh {

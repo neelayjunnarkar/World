@@ -2,37 +2,32 @@
 
 precision mediump float;
 
-in vec3 frag_color;
-in vec3 position_worldspace;
-in vec3 normal_cameraspace;
-in vec3 eye_dir_cameraspace;
-in vec3 light_dir_cameraspace;
+in vec3 frag_pos;
+in vec3 frag_normal;
+in vec3 frag_vert_color;
+in float frag_shininess;
+in vec3 frag_specular;
+in mat4 mv_mat;
 
 out vec3 color;
 
 void main(void) {
+
     vec3 light_pos_worldspace = vec3(0.f, 0.f, 10.f);
+    vec3 light_direction = vec3(0.f,0.f,-1.f);
+    vec4 light_diffuse = vec4(.8f, 0.8f, .8f, 0.0f);
+    vec4 light_ambient = vec4(0.2f, 0.2f, 0.2f, 1.0f);
+    vec4 light_specular = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    vec3 light_color = vec3(1.f,1.f,1.f);
-    float light_power = 200.0f;
+    vec3 mv_light_dir = (mv_mat * vec4(light_direction, 0.0f)).xyz;
+    vec3 normal = normalize(frag_normal);
+    vec3 eye = normalize(frag_pos);
+    vec3 reflection = reflect(mv_light_dir, normal);
 
-    vec3 diffuse_color = frag_color/255.f;
-    vec3 ambient_color = vec3(0.2f, 0.2f, 0.2f) * diffuse_color;
-    vec3 specular_color = vec3(0.1f, 0.1f, 0.1f);
+    vec3 frag_diffuse = frag_vert_color;
+    vec4 diffuse_factor = max(-dot(normal, mv_light_dir), 0.0f) * light_diffuse;
+    vec4 ambient_diffuse_factor = diffuse_factor + light_ambient;
+    vec4 specular_factor = max(pow(-dot(reflection, eye), frag_shininess), 0.0f)*light_specular;
 
-    float distance = length(light_pos_worldspace - position_worldspace);
-
-    vec3 n = normalize(normal_cameraspace);
-    vec3 l = normalize(light_dir_cameraspace);
-
-    float cos_theta = clamp(dot(n,l), 0.f, 1.f);
-
-    vec3 eye_dir = normalize(eye_dir_cameraspace);
-    vec3 reflect_dir = reflect(-l, n);
-
-    float cos_alpha = clamp(dot(eye_dir, reflect_dir), 0.f, 1.f);
-
-    color = ambient_color + 
-        diffuse_color*light_color*cos_theta/(distance*distance) + 
-        specular_color*light_color*light_power*pow(cos_alpha, 5.0f)/(distance*distance);
+    color = specular_factor.xyz* frag_specular + ambient_diffuse_factor.xyz * frag_diffuse;
 }

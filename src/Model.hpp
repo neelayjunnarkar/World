@@ -4,7 +4,7 @@
 #include "Mesh.hpp"
 
 class Model {
-protected:
+public:
     Mesh mesh;
     glm::vec3 scale                 = glm::vec3(1.f, 1.f, 1.f);
     glm::vec3 rotation_axis         = glm::vec3(0.f, 0.f, 1.f);

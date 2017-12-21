@@ -12,9 +12,12 @@ extern "C" {
 
 #include "logging.hpp"
 
+#include "SphericalFunctionModel.hpp"
 #include "FunctionModel.hpp"
 #include "TestModel.hpp"
 #include <cmath>
+#include "FastNoise.h"
+#include <random>
 
 bool init(ESContext *es_context);
 bool initGL(ESContext *es_context);
@@ -22,6 +25,7 @@ void loop(void *data);
 void update(ESContext *es_context);
 void render(ESContext *es_context);
 GLuint make_buffer(GLenum target, const void *buffer_data, GLsizei buffer_size, GLenum usage);
+
 
 int main() {
     ESContext es_context;
@@ -31,7 +35,48 @@ int main() {
         log("failed to initialize");
         return 1;
     }
+    UserData *userdata = (UserData*)es_context.userData;
+
+    auto basic_fn = [](float x, float y) -> float { return 0.f; };
+    auto oscillations = [](float x, float y) -> float { return std::sin(x)+std::sin(y); };
+    auto paraboloid = [](float x, float y) -> float { return -x*x - y*y; };
+    auto spherical_sphere = [](float theta, float phi) -> float { return 5.f; };
+
+    auto noisy = [](float theta, float phi) -> float { 
+        static FastNoise gen;
+        static float max = -10.f;
+        static float min = 10.f;
+        gen.SetNoiseType(FastNoise::PerlinFractal);
+        gen.SetFrequency(M_PI);
+        float val = gen.GetNoise(theta, phi);
+        if (val > max) {
+            max = val;
+            log(std::string("max: ") + std::to_string(val));
+        }
+        if (val < min) {
+            min = val;
+            log(std::string("min: ") + std::to_string(val));
+        }
+        return 4.f + (val+0.611f)/(2.f*0.611f);
+    };
+    auto random = [](float x, float y) -> float {
+        static std::default_random_engine gen;
+        static std::uniform_real_distribution<float> dist(0.f, 1.f);
+        return 4.f + dist(gen);
+    };
+    // userdata->models.push_back(std::make_unique<FunctionModel>(basic_fn, -1.f, 1.f, 3, -1.f, 1.f, 3));
+    // userdata->models.push_back(std::make_unique<FunctionModel>(oscillations, -2.f*M_PI, 2.f*M_PI, 100,
+    //    -2.f*M_PI, 2.f*M_PI, 100));
     
+    // userdata->models.push_back(std::make_unique<SphericalFunctionModel>(spherical_sphere, 
+    //     0.f, 2.f*M_PI, 75, 
+    //     0.f, (float)M_PI, 75, true));
+    userdata->models.push_back(std::make_unique<SphericalFunctionModel>(noisy, 0.f, 2.f*M_PI, 100, 0.f, (float)M_PI, 100, true));
+
+    userdata->camera_pos = glm::vec3(0,-30, 0);
+    userdata->camera_target = glm::vec3(0,0,0);
+    userdata->up_vec = glm::vec3(0,0,-1);
+        
     emscripten_set_main_loop_arg(&loop, (void*)&es_context, 0, 1);
 
     delete (UserData*)es_context.userData;
@@ -64,23 +109,12 @@ bool init(ESContext *es_context) {
         100.0f
     );
 
-    userdata->camera_pos = glm::vec3(0,-20,20);
-    userdata->camera_target = glm::vec3(0,0,0);
-    userdata->up_vec = glm::vec3(0,1,0);
-
     userdata->view_mat = glm::lookAt(
         userdata->camera_pos,
         userdata->camera_target,
         userdata->up_vec
     );
-    
-    auto basic_fn = [](float x, float y) -> float { return 0.f; };
-    auto oscillations = [](float x, float y) -> float { return std::sin(x)+std::sin(y); };
 
-    userdata->models.push_back(std::make_unique<FunctionModel>(oscillations, -2.f*M_PI, 2.f*M_PI, 50,
-        -2.f*M_PI, 2.f*M_PI, 50));
-    //userdata->models.push_back(std::make_unique<TestModel>());
-    
     return true;
 }
 
@@ -153,6 +187,7 @@ void update(ESContext *es_context) {
     for (std::unique_ptr<Model> &model : userdata->models) {
         model->update();
     }
+    userdata->models[0]->angle += 0.0005;
 
     userdata->view_mat = glm::lookAt(
         userdata->camera_pos,
