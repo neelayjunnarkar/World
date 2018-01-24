@@ -1,5 +1,5 @@
 # World
-🌐 Procedurally generated terrain, displayed in-browser using WebAssembly and OpenGLES
+🌎 Procedurally generated terrain, displayed in-browser using WebAssembly and OpenGLES
 
 ![World animation](https://media.giphy.com/media/26gN25qDMzfnmeq5i/giphy.gif)
 
