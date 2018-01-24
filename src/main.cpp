@@ -44,19 +44,19 @@ int main() {
 
     auto noisy = [](float theta, float phi) -> float { 
         static FastNoise gen;
-        static float max = -10.f;
-        static float min = 10.f;
+        static const float pi = (float) M_PI;
+        static const float max_freq = 2.f*pi;        
+        static const float pi2 = pi*pi;
+        static const float base_p = 4.f;
+
+        // float freq = max_freq*std::pow(std::sqrt(1.f - (4.f/pi2)*std::pow(phi-pi/2.f, 2)), 1);
+        gen.SetFrequency(pi);
+        // gen.SetFrequency(M_PI);
         gen.SetNoiseType(FastNoise::PerlinFractal);
-        gen.SetFrequency(M_PI);
+        // float y = base_p*cos(phi)*sin(theta);
+        // float x = base_p*cos(phi)*cos(theta);
+        // float z = base_p*sin(phi);
         float val = gen.GetNoise(theta, phi);
-        if (val > max) {
-            max = val;
-            log(std::string("max: ") + std::to_string(val));
-        }
-        if (val < min) {
-            min = val;
-            log(std::string("min: ") + std::to_string(val));
-        }
         return 4.f + (val+0.611f)/(2.f*0.611f);
     };
     auto random = [](float x, float y) -> float {
@@ -71,11 +71,11 @@ int main() {
     // userdata->models.push_back(std::make_unique<SphericalFunctionModel>(spherical_sphere, 
     //     0.f, 2.f*M_PI, 75, 
     //     0.f, (float)M_PI, 75, true));
-    userdata->models.push_back(std::make_unique<SphericalFunctionModel>(noisy, 0.f, 2.f*M_PI, 100, 0.f, (float)M_PI, 100, true));
+    userdata->models.push_back(std::make_unique<SphericalFunctionModel>(noisy, 0.f, 2.f*M_PI, 200, 0.f, (float)M_PI, 200, true));
 
-    userdata->camera_pos = glm::vec3(0,-30, 0);
+    userdata->camera_pos = glm::vec3(0,-30,0);
     userdata->camera_target = glm::vec3(0,0,0);
-    userdata->up_vec = glm::vec3(0,0,-1);
+    userdata->up_vec = glm::vec3(0,0,1);
         
     emscripten_set_main_loop_arg(&loop, (void*)&es_context, 0, 1);
 
@@ -92,7 +92,7 @@ bool init(ESContext *es_context) {
     });
 
     esInitContext(es_context);
-    esCreateWindow(es_context, "rawr", width, height, ES_WINDOW_RGB);
+    esCreateWindow(es_context, "rawr", width, height, ES_WINDOW_RGB|ES_WINDOW_DEPTH);
 
     UserData *userdata = (UserData*)es_context->userData;
 
@@ -168,10 +168,18 @@ bool initGL(ESContext *es_context) {
     userdata->attributes.normal   = glGetAttribLocation(userdata->program_id, "normal_modelspace");
     userdata->attributes.diffuse_color = glGetAttribLocation(userdata->program_id, "diffuse_color");
 
+
+    
+    // glClearDepthf(1.f);
+    // glDepthMask(GL_TRUE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW); // p sure this should be ccw
+    // but for some reason this is working and the other has some weird interpolation??
+ 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     return true;
 }
@@ -202,11 +210,12 @@ void render(ESContext *es_context) {
 
     glUseProgram(userdata->program_id);
 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     // set view and projection matrices
     glUniformMatrix4fv(userdata->uniforms.view_mat, 1, GL_FALSE, &userdata->view_mat[0][0]);    
     glUniformMatrix4fv(userdata->uniforms.projection_mat, 1, GL_FALSE, &userdata->projection_mat[0][0]);
     
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnableVertexAttribArray(userdata->attributes.position);
     glEnableVertexAttribArray(userdata->attributes.normal);
