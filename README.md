@@ -1,7 +1,7 @@
 # World
 🌐 Procedurally generated terrain, displayed in-browser using WebAssembly and OpenGLES
 
-![animated world](https://media.giphy.com/media/3o7526BOBFrQnPu4xi/giphy.gif)
+![World animation](https://media.giphy.com/media/26gN25qDMzfnmeq5i/giphy.gif)
 
 ## Installation
 ```bash
