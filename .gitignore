@@ -1,3 +1,9 @@
+# Dependencies from the installer
+emsdk-portable.tar.gz
+emsdk-portable/*
+include/0.9.8.5.tar.gz
+include/glm-0.9.8.5/*
+
 # Out 
 out/main.*
 
